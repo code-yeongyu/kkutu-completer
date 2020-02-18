@@ -32,3 +32,11 @@ def get_recommendation(start):
     result = cursor.fetchall()
     cursor.close()
     return result
+
+
+def get_recommendation_quick(start, cursor):
+    start = start[-1:]
+    cursor.execute(
+        f"SELECT * FROM hangul WHERE start='{start}' ORDER BY length DESC;")
+    result = cursor.fetchall()
+    return result
