@@ -1,10 +1,8 @@
 import database
 from hangul_library import *
 from selenium import webdriver
-from time import sleep
-import timeit
-import random
 from threading import Thread
+from time import sleep
 
 import sqlite3
 from db_specs import db_settings
@@ -21,33 +19,34 @@ def manner_filter_word_to_type(words, history):
         '뢰', '죵', '샅', '램', '랖', '랒', '길', '밀', '꼍', '믄', '뭇', '슨', '늉', '율',
         '킨', '펫', '껑', '궤', '믁', '윙', '욤', '늘', '삐', '닥'
     ]
-    TWO_KILL = [
-        '늣', '븨', '뀌', '훠', '샷', "얏", "츰", "랏", "쳔", "즘", "륄", "옳", "믜", '셋',
-        "쳥", "욘"
-    ]
     suggested = []
-    if len(words) == 0:
-        return None
 
     for word in words:
-        if not word[1] in history:
-            if word[1][-1:] not in ONE_KILL:
-                suggested.append(word[1])
-    suggested.sort(key=len, reverse=True)
-
-    # two_kill
-    if len(suggested[0]) < 10:
-        for s in suggested:
-            if not s in history:
-                if s[-1:] in TWO_KILL:
-                    print("ATTACK!")
-                    return s
+        if word[1] == letter:
+            return suggested.append(word)
 
     word_len = len(suggested[0])
 
     if suggested[0][word_len - 2:word_len] == "하다":
         suggested[0].replace("하다", "").replace("타다", "").replace("거리다", "")
     return suggested[0]
+
+
+def load_words():
+    words_raw = database.get_all()
+    words = []
+    for word in words_raw:
+        words.append([word[1], word[2]])
+    del words_raw
+
+    words.sort(key=lambda x: (x[0][0], -len(x[0])))
+    return words
+
+
+def search_word(words, letter):
+    for word in words:
+        if word[1] == letter:
+            return word
 
 
 class KkutuGame:
@@ -93,6 +92,17 @@ class KkutuGame:
         except:
             self.driver.find_element_by_xpath(
                 "/html/body/div[3]/div[30]/div/input").send_keys(f"{word}\n")
+
+    def send_word(self, word):
+        js = f"document.getElementById('{self.get_chat_element()}').value = '{word}';"
+        js += "document.getElementById('ChatBtn').click();"
+        self.driver.execute_script(js)
+
+    def get_chat_element(self):
+        source = driver.page_source
+        source = source[source.find("UserMessage"):]
+        source = source[:source.find("\"")]
+        return source
 
     def is_my_turn(self):
         return self.driver.find_element_by_css_selector(
@@ -145,7 +155,8 @@ def thread_wrapper(kg):
         result = manner_filter_word_to_type(suggested,
                                             kg.get_used_words() + used)
         if result != None:
-            kg.type_word(result)
+            kg.send_word(result)
+            sleep(0.4)
             if kg.is_fail():
                 f = open("fails.txt", 'a')
                 f.write(f"{used}\n")
@@ -157,15 +168,13 @@ def thread_wrapper(kg):
             f = open("logs.txt", 'a')
             f.write(f"{text[-1:]}\n")
             f.close()
-        sleep(0.8)
 
 
 driver = webdriver.Chrome(
     "/Users/yeongyu/Documents/git/kkutu-completer/chromedriver")
 driver.get("https://kkutu.co.kr")
 kg = KkutuGame(driver)
-import pdb
-pdb.set_trace()
+input("엔터")
 while True:
     kg.mine_words_til_my_turn()
     try:
