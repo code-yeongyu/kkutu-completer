@@ -19,15 +19,34 @@ def manner_filter_word_to_type(words, history):
         '뢰', '죵', '샅', '램', '랖', '랒', '길', '밀', '꼍', '믄', '뭇', '슨', '늉', '율',
         '킨', '펫', '껑', '궤', '믁', '윙', '욤', '늘', '삐', '닥'
     ]
+    TWO_KILL = [
+        '늣', '븨', '뀌', '훠', '샷', "얏", "츰", "랏", "쳔", "즘", "륄", "옳", "믜", '셋',
+        "쳥", "욘"
+    ]
     suggested = []
+    if len(words) == 0:
+        return None
 
     for word in words:
-        if word[1] == letter:
-            return suggested.append(word)
+        if not word[1] in history:
+            if word[1][-1:] not in ONE_KILL:
+                suggested.append(word[1])
+    suggested.sort(key=len, reverse=True)
+
+    # two_kill
+    if len(suggested[0]) < 10:
+        for s in suggested:
+            if not s in history:
+                if s[-1:] in TWO_KILL:
+                    print("ATTACK!")
+                    return s
 
     word_len = len(suggested[0])
 
-    if suggested[0][word_len - 2:word_len] == "하다":
+    if suggested[0][word_len - 2:word_len] == "하다" or suggested[
+            0][word_len -
+               2:word_len] == "타다" or suggested[0][word_len -
+                                                   2:word_len] == "거리다":
         suggested[0].replace("하다", "").replace("타다", "").replace("거리다", "")
     return suggested[0]
 
@@ -81,7 +100,8 @@ class KkutuGame:
 
     def update_current_text(self):
         try:
-            self.current_text = self.get_current_text()
+            if not self.is_fail():
+                self.current_text = self.get_current_text()
         except Exception as e:
             pass
 
@@ -156,7 +176,7 @@ def thread_wrapper(kg):
                                             kg.get_used_words() + used)
         if result != None:
             kg.send_word(result)
-            sleep(0.4)
+            sleep(0.5)
             if kg.is_fail():
                 f = open("fails.txt", 'a')
                 f.write(f"{used}\n")
