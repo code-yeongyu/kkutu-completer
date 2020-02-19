@@ -3,6 +3,15 @@ from db_specs import db_settings
 from db_specs import table_schema
 
 
+def get_all():
+    connection = sqlite3.connect(db_settings.file_name)
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT * FROM hangul;")
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+
 def save_word(word):
     connection = sqlite3.connect(db_settings.file_name)
     cursor = connection.cursor()
