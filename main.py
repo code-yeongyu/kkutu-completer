@@ -3,7 +3,7 @@ from hangul_library import *
 from selenium import webdriver
 from threading import Thread
 from time import sleep
-
+import random
 import sqlite3
 from db_specs import db_settings
 from db_specs import table_schema
@@ -21,7 +21,7 @@ def manner_filter_word_to_type(words, history):
     ]
     TWO_KILL = [
         '늣', '븨', '뀌', '훠', '샷', "얏", "츰", "랏", "쳔", "즘", "륄", "옳", "믜", '셋',
-        "쳥", "욘"
+        "쳥", "욘", '숍', '랙', '츈', '렛', '텬', '딍', '싀'
     ]
     suggested = []
     if len(words) == 0:
@@ -34,20 +34,12 @@ def manner_filter_word_to_type(words, history):
     suggested.sort(key=len, reverse=True)
 
     # two_kill
-    if len(suggested[0]) < 10:
+    if len(suggested[0]) < 15:
         for s in suggested:
-            if not s in history:
-                if s[-1:] in TWO_KILL:
-                    print("ATTACK!")
-                    return s
+            if s[-1:] in TWO_KILL:
+                print("ATTACK!")
+                return s
 
-    word_len = len(suggested[0])
-
-    if suggested[0][word_len - 2:word_len] == "하다" or suggested[
-            0][word_len -
-               2:word_len] == "타다" or suggested[0][word_len -
-                                                   2:word_len] == "거리다":
-        suggested[0].replace("하다", "").replace("타다", "").replace("거리다", "")
     return suggested[0]
 
 
@@ -75,6 +67,12 @@ class KkutuGame:
         self.current_text = ""
         connection = sqlite3.connect(db_settings.file_name)
         self.cursor = connection.cursor()
+
+    def get_remain_time(self):
+        text = driver.find_element_by_css_selector(
+            "#GameBox > div > div.game-head > div.jjoriping > div > div.graph.jjo-turn-time > div"
+        ).text
+        return float(text.replace("초", ""))
 
     def is_fail(self):
         if "game-fail-text" in driver.page_source:
@@ -175,6 +173,9 @@ def thread_wrapper(kg):
         result = manner_filter_word_to_type(suggested,
                                             kg.get_used_words() + used)
         if result != None:
+            remaining_time = kg.get_remain_time()
+            sleep_time = random.uniform(0, remaining_time - 1)
+            sleep(sleep_time)
             kg.send_word(result)
             sleep(0.5)
             if kg.is_fail():
@@ -196,8 +197,8 @@ driver.get("https://kkutu.co.kr")
 kg = KkutuGame(driver)
 input("엔터")
 while True:
-    kg.mine_words_til_my_turn()
     try:
+        kg.mine_words_til_my_turn()
         thread_wrapper(kg)
     except Exception as e:
         print(e)
